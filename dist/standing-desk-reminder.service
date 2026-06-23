@@ -1,0 +1,25 @@
+# systemd --user unit template.
+#
+# `standing-desk-reminder install-service` generates this automatically with the
+# correct binary path. Use this file only for manual or packaged installs:
+#
+#   mkdir -p ~/.config/systemd/user
+#   cp dist/standing-desk-reminder.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now standing-desk-reminder.service
+#
+# Adjust ExecStart if the binary is not on PATH (%h expands to your home dir).
+
+[Unit]
+Description=Standing Desk Reminder
+Documentation=https://github.com/JuliDi/standing-desk-reminder
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.cargo/bin/standing-desk-reminder run
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

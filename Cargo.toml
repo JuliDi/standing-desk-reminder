@@ -1,0 +1,32 @@
+[package]
+name = "standing-desk-reminder"
+version = "0.1.0"
+edition = "2024"
+description = "A small cross-desktop reminder to alternate between standing and sitting at your desk"
+authors = ["JuliDi"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/JuliDi/standing-desk-reminder"
+keywords = ["health", "reminder", "standing-desk", "notification", "tray"]
+categories = ["command-line-utilities"]
+
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+
+[dependencies]
+anyhow = "1.0.102"
+clap = { version = "4.6.1", features = ["derive"] }
+ctrlc = "3.5.2"
+directories = "6.0.0"
+env_logger = "0.11.10"
+humantime = "2.3.0"
+humantime-serde = "1.1.1"
+log = "0.4.33"
+notify-rust = "4.18.0"
+serde = { version = "1.0.228", features = ["derive"] }
+toml = "1.1.2"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+ksni = { version = "0.3.5", features = ["blocking"] }
