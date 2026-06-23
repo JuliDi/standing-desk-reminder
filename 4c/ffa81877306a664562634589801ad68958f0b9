@@ -1,0 +1,37 @@
+src/main.rs
+  s_a35738662c4dd1::t_ede8a65f96fb08 209
+  s_a35738662c4dd1::t_1105d18ace63d7 117-122,125,151-158,161,165-175,177-184
+  s_a35738662c4dd1::t_74d5b55a4fce82 17,20
+  s_a35738662c4dd1::t_0b198a75d2c3bf 176
+src/reminder.rs
+  s_a35738662c4dd1::t_c03b5abf966d7a 4,10-12,15-48,281
+  s_a35738662c4dd1::t_a46d795d82bfcf 94-98
+  s_a35738662c4dd1::t_0de10fdc0663b1 134-143,147,156-181,188,200,213,235-236,243
+  s_a35738662c4dd1::t_29e7a65187932d 259-264,266-271,275-280
+  s_a35738662c4dd1::t_21289df9d1fa67 127-130
+  s_a35738662c4dd1::t_60380cff59ab37 62
+src/notify.rs
+  s_a35738662c4dd1::t_9e15810f4c0a8b 92-106
+src/tray.rs
+  s_a35738662c4dd1::t_a55f6e7959789e 193-194,196-199
+  s_a35738662c4dd1::t_3b1cfb44421d51 19
+  s_a35738662c4dd1::t_d3a652cf3b3acf 153-159
+README.md
+  s_a35738662c4dd1::t_43626e4d0a4f5e 32-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.10",
+  "base_commit_sha": "4cffa81877306a664562634589801ad68958f0b9",
+  "prompts": {},
+  "sessions": {
+    "s_a35738662c4dd1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "315246f9-04e7-45f5-83a7-7c1c14094f59",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "JuliDi <julian@systemscape.de>"
+    }
+  }
+}
