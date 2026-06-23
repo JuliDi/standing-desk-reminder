@@ -1,0 +1,44 @@
+src/lock.rs
+  s_a35738662c4dd1::t_5363ad93c7e6ab 1-3,10,12-16,18-26,28-30,41-59,66,74-78,82-83,85-86,91-102
+  s_a35738662c4dd1::t_07bb3d6837ba7a 4-9,11,17,27,31-40,60-65,67-73
+  s_a35738662c4dd1::t_70b63c60842ec7 79-81,84,87-90
+Cargo.toml
+  s_a35738662c4dd1::t_09cabae797de23 33
+src/reminder.rs
+  s_a35738662c4dd1::t_4e77bf71befa08 86,207-227
+  s_a35738662c4dd1::t_9f8b2788e8884a 156
+  s_a35738662c4dd1::t_f0a69211ce9dc0 19-20,26-28,49-58,63-71,79-85
+  s_a35738662c4dd1::t_d7b0d385aa7294 103-105,111-114
+  s_a35738662c4dd1::t_2c8e3ceca27c30 115-116,118-139,143-144
+  s_a35738662c4dd1::t_286f0f316c95ee 172-173
+README.md
+  s_a35738662c4dd1::t_3639b57cc3a03c 89-96
+  s_a35738662c4dd1::t_297a2aba35ddc6 33-39
+src/tray.rs
+  s_a35738662c4dd1::t_dd42ead78037bf 100-101
+src/config.rs
+  s_a35738662c4dd1::t_ce838d68b9d09c 53-55,58-59
+  s_a35738662c4dd1::t_ef7a4c005c9ed1 71,73
+  s_a35738662c4dd1::t_0f512fd3d14702 156-158,162-163
+src/notify.rs
+  s_a35738662c4dd1::t_01a5cd2a92bf3a 4-6,10,14-17,19-27,29-32,40-45,53-66
+src/main.rs
+  s_a35738662c4dd1::t_c0907b49915396 148-152
+  s_a35738662c4dd1::t_1a69ed0c5f038e 13-14
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.10",
+  "base_commit_sha": "7b917cd1652cf4b89b2a89ffb39d2142c2149f60",
+  "prompts": {},
+  "sessions": {
+    "s_a35738662c4dd1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "315246f9-04e7-45f5-83a7-7c1c14094f59",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "JuliDi <julian@systemscape.de>"
+    }
+  }
+}
