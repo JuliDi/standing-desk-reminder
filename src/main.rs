@@ -10,6 +10,8 @@ mod service;
 #[cfg(target_os = "linux")]
 mod icon;
 #[cfg(target_os = "linux")]
+mod lock;
+#[cfg(target_os = "linux")]
 mod tray;
 
 use std::path::PathBuf;
@@ -141,6 +143,11 @@ fn run(config_path: PathBuf, args: RunArgs) -> Result<()> {
             controls.request_quit();
         })
         .context("installing Ctrl-C handler")?;
+    }
+
+    #[cfg(target_os = "linux")]
+    if config.pause_when_locked {
+        lock::spawn(Arc::clone(&controls));
     }
 
     let on_status = start_tray(&config, config_path, Arc::clone(&controls), args.no_tray);

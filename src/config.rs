@@ -50,8 +50,13 @@ pub struct Config {
     pub stand_message: String,
     /// Notification body shown when it is time to sit.
     pub sit_message: String,
+    /// How long "Snooze" postpones a reminder before nudging again.
+    #[serde(with = "humantime_serde")]
+    pub snooze_duration: Duration,
     /// Ask the desktop to play its notification sound with each reminder.
     pub sound: bool,
+    /// Freeze the countdown while the screen is locked (resume on unlock).
+    pub pause_when_locked: bool,
     /// Which posture to assume the user is in at startup.
     pub start_phase: Phase,
 }
@@ -63,7 +68,9 @@ impl Default for Config {
             stand_duration: Duration::from_secs(15 * 60),
             stand_message: "Time to stand up and stretch your legs.".to_string(),
             sit_message: "Time to sit down for a bit.".to_string(),
+            snooze_duration: Duration::from_secs(5 * 60),
             sound: true,
+            pause_when_locked: true,
             start_phase: Phase::Sitting,
         }
     }
@@ -146,8 +153,14 @@ stand_message = "Time to stand up and stretch your legs."
 # Notification text shown when it is time to sit down.
 sit_message = "Time to sit down for a bit."
 
+# How long the "Snooze" button postpones a reminder before nudging again.
+snooze_duration = "5m"
+
 # Ask the desktop to play its notification sound with each reminder.
 sound = true
+
+# Freeze the countdown while the screen is locked, and resume on unlock.
+pause_when_locked = true
 
 # Which posture to start in when the program launches: "sitting" or "standing".
 start_phase = "sitting"

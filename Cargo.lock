@@ -1153,6 +1153,7 @@ dependencies = [
  "notify-rust",
  "serde",
  "toml",
+ "zbus",
 ]
 
 [[package]]

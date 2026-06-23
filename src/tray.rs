@@ -97,6 +97,8 @@ impl Tray for ReminderTray {
     fn menu(&self) -> Vec<MenuItem<Self>> {
         let paused_suffix = if self.controls.is_paused() {
             " (paused)"
+        } else if self.controls.is_locked() {
+            " (screen locked)"
         } else {
             ""
         };

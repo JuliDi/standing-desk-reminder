@@ -16,12 +16,16 @@ pub type StatusCallback = Box<dyn Fn(Phase, Duration) + Send>;
 /// How often the loop wakes to check for pause / skip / quit requests.
 const POLL_INTERVAL: Duration = Duration::from_millis(250);
 
-/// Shared, thread-safe control flags driven by the tray menu and Ctrl-C.
+/// Shared, thread-safe control flags driven by the tray menu, notification
+/// actions, the screen-lock watcher, and Ctrl-C.
 #[derive(Debug, Default)]
 pub struct Controls {
     paused: AtomicBool,
     quit: AtomicBool,
     skip: AtomicBool,
+    restart: AtomicBool,
+    snooze: AtomicBool,
+    locked: AtomicBool,
 }
 
 impl Controls {
@@ -42,8 +46,27 @@ impl Controls {
         self.skip.store(true, Ordering::Relaxed);
     }
 
+    /// Restart the current phase's countdown from the full duration.
+    pub fn request_restart(&self) {
+        self.restart.store(true, Ordering::Relaxed);
+    }
+
+    /// Postpone: go back to the previous phase for the snooze duration.
+    pub fn request_snooze(&self) {
+        self.snooze.store(true, Ordering::Relaxed);
+    }
+
     pub fn request_quit(&self) {
         self.quit.store(true, Ordering::Relaxed);
+    }
+
+    /// Set by the screen-lock watcher; freezes the countdown while `true`.
+    pub fn set_locked(&self, locked: bool) {
+        self.locked.store(locked, Ordering::Relaxed);
+    }
+
+    pub fn is_locked(&self) -> bool {
+        self.locked.load(Ordering::Relaxed)
     }
 
     fn quit_requested(&self) -> bool {
@@ -52,6 +75,14 @@ impl Controls {
 
     fn take_skip(&self) -> bool {
         self.skip.swap(false, Ordering::Relaxed)
+    }
+
+    fn take_restart(&self) -> bool {
+        self.restart.swap(false, Ordering::Relaxed)
+    }
+
+    fn take_snooze(&self) -> bool {
+        self.snooze.swap(false, Ordering::Relaxed)
     }
 }
 
@@ -69,17 +100,48 @@ pub fn run(config: &Config, controls: Arc<Controls>, on_status: Option<StatusCal
     );
 
     while !controls.quit_requested() {
-        // An explicit "switch now" wins, even while paused.
+        // An explicit "switch now" wins, even while paused. No reminder
+        // notification here: the user just triggered the switch, so there is
+        // nothing to confirm.
         if controls.take_skip() {
             phase = phase.other();
             remaining = config.duration(phase);
-            announce_switch(config, phase);
             notify_status(&on_status, phase, remaining);
             last_secs = remaining.as_secs();
+            log::info!(
+                "manually switched to {phase}; next switch in {}",
+                humantime::format_duration(remaining)
+            );
             continue;
         }
 
-        if controls.is_paused() {
+        // "I did it" — restart the current phase's countdown from now.
+        if controls.take_restart() {
+            remaining = config.duration(phase);
+            notify_status(&on_status, phase, remaining);
+            last_secs = remaining.as_secs();
+            log::info!(
+                "restarted {phase} phase; next switch in {}",
+                humantime::format_duration(remaining)
+            );
+            continue;
+        }
+
+        // "Snooze" — revert to the previous phase for the snooze duration.
+        if controls.take_snooze() {
+            phase = phase.other();
+            remaining = config.snooze_duration;
+            notify_status(&on_status, phase, remaining);
+            last_secs = remaining.as_secs();
+            log::info!(
+                "snoozed; back to {phase} for {}",
+                humantime::format_duration(remaining)
+            );
+            continue;
+        }
+
+        // Freeze while manually paused or while the screen is locked.
+        if controls.is_paused() || controls.is_locked() {
             thread::sleep(POLL_INTERVAL);
             continue;
         }
@@ -91,7 +153,7 @@ pub fn run(config: &Config, controls: Arc<Controls>, on_status: Option<StatusCal
         if remaining.is_zero() {
             phase = phase.other();
             remaining = config.duration(phase);
-            announce_switch(config, phase);
+            announce_switch(config, phase, &controls);
             notify_status(&on_status, phase, remaining);
             last_secs = remaining.as_secs();
         } else {
@@ -107,8 +169,8 @@ pub fn run(config: &Config, controls: Arc<Controls>, on_status: Option<StatusCal
     log::info!("reminder loop stopped");
 }
 
-fn announce_switch(config: &Config, phase: Phase) {
-    notify::send_reminder(config, phase);
+fn announce_switch(config: &Config, phase: Phase, controls: &Arc<Controls>) {
+    notify::send_reminder(config, phase, controls);
     log::info!(
         "switched to {phase}; next switch in {}",
         humantime::format_duration(config.duration(phase))
@@ -141,5 +203,26 @@ mod tests {
         controls.request_skip();
         assert!(controls.take_skip());
         assert!(!controls.take_skip());
+    }
+
+    #[test]
+    fn restart_and_snooze_are_taken_once() {
+        let controls = Controls::new();
+        controls.request_restart();
+        controls.request_snooze();
+        assert!(controls.take_restart());
+        assert!(!controls.take_restart());
+        assert!(controls.take_snooze());
+        assert!(!controls.take_snooze());
+    }
+
+    #[test]
+    fn lock_state_round_trips() {
+        let controls = Controls::new();
+        assert!(!controls.is_locked());
+        controls.set_locked(true);
+        assert!(controls.is_locked());
+        controls.set_locked(false);
+        assert!(!controls.is_locked());
     }
 }

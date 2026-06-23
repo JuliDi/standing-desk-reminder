@@ -30,6 +30,13 @@ rewritten for modern Rust and tested on Ubuntu with both **GNOME** and **KDE**.
   - **Left-click** (or double-click): pause / resume
   - **Middle-click**: switch phase now
   - Menu items: *Pause reminders*, *Switch now*, *Edit configuration…*, *Quit*
+- **Persistent reminders you won't miss.** Each reminder stays on screen until
+  you act on it (so it's there when you return to your desk) and carries two
+  buttons: **"I'm standing/sitting"** restarts the countdown from now, and
+  **"Snooze"** postpones the switch.
+- **Pause while the screen is locked.** The countdown freezes when you lock the
+  screen and resumes on unlock, via systemd-logind's `LockedHint` (works on
+  GNOME and KDE; disable with `pause_when_locked = false`).
 - **Friendly config** in TOML with human-readable durations (`45m`, `1h 30m`).
 
 ## Install
@@ -79,12 +86,14 @@ The first run writes a commented default config to
 ```toml
 # Durations accept friendly units, e.g. "30s", "15m", "1h 30m".
 
-sit_duration   = "45m"   # how long to sit before the stand reminder
-stand_duration = "15m"   # how long to stand before the sit reminder
-stand_message  = "Time to stand up and stretch your legs."
-sit_message    = "Time to sit down for a bit."
-sound          = true    # ask the desktop to play its notification sound
-start_phase    = "sitting"  # "sitting" or "standing"
+sit_duration     = "45m"   # how long to sit before the stand reminder
+stand_duration   = "15m"   # how long to stand before the sit reminder
+stand_message    = "Time to stand up and stretch your legs."
+sit_message      = "Time to sit down for a bit."
+snooze_duration  = "5m"    # how long the "Snooze" button postpones a reminder
+sound            = true    # ask the desktop to play its notification sound
+pause_when_locked = true   # freeze the countdown while the screen is locked
+start_phase      = "sitting"  # "sitting" or "standing"
 ```
 
 CLI flags (`--sit`, `--stand`, `--no-sound`) override the file for that run.
