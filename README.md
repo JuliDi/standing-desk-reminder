@@ -8,6 +8,11 @@ service for background use.
 Inspired by [Shogan/remember-to-stand](https://github.com/Shogan/remember-to-stand),
 rewritten for modern Rust and tested on Ubuntu with both **GNOME** and **KDE**.
 
+## Screenshots
+![Screenshot of the tray icon and context menu](./screenshots/tray.png)
+
+![Screenshot of a notification](./screenshots/notification.png)
+
 ## Highlights
 
 - **Pure Rust, no system `-dev` packages.** Notifications and the tray both use
