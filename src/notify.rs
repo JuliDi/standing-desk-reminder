@@ -89,3 +89,18 @@ pub fn send_startup(config: &Config) {
         log::warn!("could not display startup notification: {error}");
     }
 }
+
+/// A brief, non-persistent informational notification with no actions.
+pub fn send_simple(summary: &str, body: &str) {
+    let mut notification = Notification::new();
+    notification
+        .appname(APP_NAME)
+        .summary(summary)
+        .body(body)
+        .urgency(Urgency::Normal)
+        .timeout(Timeout::Milliseconds(8_000));
+
+    if let Err(error) = notification.show() {
+        log::warn!("could not display notification: {error}");
+    }
+}

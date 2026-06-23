@@ -1,17 +1,51 @@
 //! The reminder scheduler: an interruptible loop that alternates phases and
 //! fires notifications, plus the shared control state the tray menu pokes at.
 
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::time::Duration;
 
-use crate::config::{Config, Phase};
+use anyhow::Result;
+
+use crate::config::{self, Config, Phase};
 use crate::notify;
 
-/// Called with the current `(phase, remaining)` so a tray icon can refresh its
-/// countdown. Invoked on every phase change and at most once per second.
-pub type StatusCallback = Box<dyn Fn(Phase, Duration) + Send>;
+/// A snapshot pushed to the tray so it can render the live countdown and the
+/// currently-configured durations.
+pub struct TrayStatus {
+    pub phase: Phase,
+    pub remaining: Duration,
+    pub sit_duration: Duration,
+    pub stand_duration: Duration,
+}
+
+/// Called whenever the tray's display should refresh (phase change, the
+/// once-a-second countdown tick, or a config reload).
+pub type StatusCallback = Box<dyn Fn(TrayStatus) + Send>;
+
+/// Command-line overrides re-applied on top of the file on every (re)load.
+#[derive(Debug, Default, Clone)]
+pub struct Overrides {
+    pub sit: Option<Duration>,
+    pub stand: Option<Duration>,
+    pub no_sound: bool,
+}
+
+impl Overrides {
+    pub fn apply(&self, config: &mut Config) {
+        if let Some(sit) = self.sit {
+            config.sit_duration = sit;
+        }
+        if let Some(stand) = self.stand {
+            config.stand_duration = stand;
+        }
+        if self.no_sound {
+            config.sound = false;
+        }
+    }
+}
 
 /// How often the loop wakes to check for pause / skip / quit requests.
 const POLL_INTERVAL: Duration = Duration::from_millis(250);
@@ -25,6 +59,7 @@ pub struct Controls {
     skip: AtomicBool,
     restart: AtomicBool,
     snooze: AtomicBool,
+    reload: AtomicBool,
     locked: AtomicBool,
 }
 
@@ -56,6 +91,11 @@ impl Controls {
         self.snooze.store(true, Ordering::Relaxed);
     }
 
+    /// Re-read the config file from disk.
+    pub fn request_reload(&self) {
+        self.reload.store(true, Ordering::Relaxed);
+    }
+
     pub fn request_quit(&self) {
         self.quit.store(true, Ordering::Relaxed);
     }
@@ -84,14 +124,27 @@ impl Controls {
     fn take_snooze(&self) -> bool {
         self.snooze.swap(false, Ordering::Relaxed)
     }
+
+    fn take_reload(&self) -> bool {
+        self.reload.swap(false, Ordering::Relaxed)
+    }
 }
 
 /// Run the reminder loop until a quit is requested. Blocks the calling thread.
-pub fn run(config: &Config, controls: Arc<Controls>, on_status: Option<StatusCallback>) {
+///
+/// Owns `config` so it can be swapped out when a reload is requested (by the
+/// tray menu or the config-file watcher); `overrides` are re-applied each time.
+pub fn run(
+    mut config: Config,
+    config_path: PathBuf,
+    overrides: Overrides,
+    controls: Arc<Controls>,
+    on_status: Option<StatusCallback>,
+) {
     let mut phase = config.start_phase;
     let mut remaining = config.duration(phase);
 
-    notify_status(&on_status, phase, remaining);
+    notify_status(&on_status, &config, phase, remaining);
     let mut last_secs = remaining.as_secs();
 
     log::info!(
@@ -100,13 +153,39 @@ pub fn run(config: &Config, controls: Arc<Controls>, on_status: Option<StatusCal
     );
 
     while !controls.quit_requested() {
+        // Re-read the config file. Shortening the current phase takes effect
+        // immediately (clamp); lengthening applies from the next switch.
+        if controls.take_reload() {
+            match reload(&config_path, &overrides) {
+                Ok(new_config) => {
+                    config = new_config;
+                    remaining = remaining.min(config.duration(phase));
+                    last_secs = remaining.as_secs();
+                    notify_status(&on_status, &config, phase, remaining);
+                    log::info!(
+                        "config reloaded (sit {}, stand {})",
+                        humantime::format_duration(config.sit_duration),
+                        humantime::format_duration(config.stand_duration),
+                    );
+                }
+                Err(error) => {
+                    log::warn!("config reload failed, keeping current settings: {error:#}");
+                    notify::send_simple(
+                        "Config reload failed",
+                        &format!("{error:#}\nKeeping the previous settings."),
+                    );
+                }
+            }
+            continue;
+        }
+
         // An explicit "switch now" wins, even while paused. No reminder
         // notification here: the user just triggered the switch, so there is
         // nothing to confirm.
         if controls.take_skip() {
             phase = phase.other();
             remaining = config.duration(phase);
-            notify_status(&on_status, phase, remaining);
+            notify_status(&on_status, &config, phase, remaining);
             last_secs = remaining.as_secs();
             log::info!(
                 "manually switched to {phase}; next switch in {}",
@@ -118,7 +197,7 @@ pub fn run(config: &Config, controls: Arc<Controls>, on_status: Option<StatusCal
         // "I did it" — restart the current phase's countdown from now.
         if controls.take_restart() {
             remaining = config.duration(phase);
-            notify_status(&on_status, phase, remaining);
+            notify_status(&on_status, &config, phase, remaining);
             last_secs = remaining.as_secs();
             log::info!(
                 "restarted {phase} phase; next switch in {}",
@@ -131,7 +210,7 @@ pub fn run(config: &Config, controls: Arc<Controls>, on_status: Option<StatusCal
         if controls.take_snooze() {
             phase = phase.other();
             remaining = config.snooze_duration;
-            notify_status(&on_status, phase, remaining);
+            notify_status(&on_status, &config, phase, remaining);
             last_secs = remaining.as_secs();
             log::info!(
                 "snoozed; back to {phase} for {}",
@@ -153,15 +232,15 @@ pub fn run(config: &Config, controls: Arc<Controls>, on_status: Option<StatusCal
         if remaining.is_zero() {
             phase = phase.other();
             remaining = config.duration(phase);
-            announce_switch(config, phase, &controls);
-            notify_status(&on_status, phase, remaining);
+            announce_switch(&config, phase, &controls);
+            notify_status(&on_status, &config, phase, remaining);
             last_secs = remaining.as_secs();
         } else {
             // Refresh the tray's countdown at most once per second.
             let secs = remaining.as_secs();
             if secs != last_secs {
                 last_secs = secs;
-                notify_status(&on_status, phase, remaining);
+                notify_status(&on_status, &config, phase, remaining);
             }
         }
     }
@@ -177,10 +256,28 @@ fn announce_switch(config: &Config, phase: Phase, controls: &Arc<Controls>) {
     );
 }
 
-fn notify_status(on_status: &Option<StatusCallback>, phase: Phase, remaining: Duration) {
+fn notify_status(
+    on_status: &Option<StatusCallback>,
+    config: &Config,
+    phase: Phase,
+    remaining: Duration,
+) {
     if let Some(callback) = on_status {
-        callback(phase, remaining);
+        callback(TrayStatus {
+            phase,
+            remaining,
+            sit_duration: config.sit_duration,
+            stand_duration: config.stand_duration,
+        });
     }
+}
+
+/// Re-read the config from disk and re-apply the command-line overrides.
+fn reload(path: &Path, overrides: &Overrides) -> Result<Config> {
+    let mut config = config::load(path)?;
+    overrides.apply(&mut config);
+    config.validate()?;
+    Ok(config)
 }
 
 #[cfg(test)]

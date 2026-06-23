@@ -29,7 +29,13 @@ rewritten for modern Rust and tested on Ubuntu with both **GNOME** and **KDE**.
   the current phase with a live countdown and the configured durations, plus:
   - **Left-click** (or double-click): pause / resume
   - **Middle-click**: switch phase now
-  - Menu items: *Pause reminders*, *Switch now*, *Edit configuration…*, *Quit*
+  - Menu items: *Pause reminders*, *Switch now*, *Edit configuration…*,
+    *Reload configuration*, *Quit*
+- **Live config reload.** Edits to the config file are picked up automatically
+  (the file is polled every few seconds) and the tray's "Configured" line
+  updates so you can confirm the change took effect — no restart needed. An
+  invalid edit is rejected with a notification and the previous settings are
+  kept.
 - **Persistent reminders you won't miss.** Each reminder stays on screen until
   you act on it (so it's there when you return to your desk) and carries two
   buttons: **"I'm standing/sitting"** restarts the countdown from now, and

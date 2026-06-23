@@ -14,9 +14,10 @@ mod lock;
 #[cfg(target_os = "linux")]
 mod tray;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use std::sync::Arc;
+use std::thread;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
@@ -113,18 +114,15 @@ fn resolve_config_path(from_cli: Option<PathBuf>) -> Result<PathBuf> {
 }
 
 fn run(config_path: PathBuf, args: RunArgs) -> Result<()> {
+    let overrides = reminder::Overrides {
+        sit: args.sit,
+        stand: args.stand,
+        no_sound: args.no_sound,
+    };
+
     let mut config = config::load(&config_path)
         .with_context(|| format!("loading config from {}", config_path.display()))?;
-
-    if let Some(sit) = args.sit {
-        config.sit_duration = sit;
-    }
-    if let Some(stand) = args.stand {
-        config.stand_duration = stand;
-    }
-    if args.no_sound {
-        config.sound = false;
-    }
+    overrides.apply(&mut config);
     config.validate()?;
 
     log::info!(
@@ -150,11 +148,40 @@ fn run(config_path: PathBuf, args: RunArgs) -> Result<()> {
         lock::spawn(Arc::clone(&controls));
     }
 
-    let on_status = start_tray(&config, config_path, Arc::clone(&controls), args.no_tray);
+    spawn_config_watcher(config_path.clone(), Arc::clone(&controls));
+
+    let on_status = start_tray(
+        &config,
+        config_path.clone(),
+        Arc::clone(&controls),
+        args.no_tray,
+    );
 
     notify::send_startup(&config);
-    reminder::run(&config, controls, on_status);
+    reminder::run(config, config_path, overrides, controls, on_status);
     Ok(())
+}
+
+/// Watch the config file's mtime and request a reload when it changes.
+/// Polling (rather than inotify) is dependency-free and robust against editors
+/// that save by atomic-rename or truncate-and-write.
+fn spawn_config_watcher(path: PathBuf, controls: Arc<Controls>) {
+    fn mtime(path: &Path) -> Option<std::time::SystemTime> {
+        std::fs::metadata(path).and_then(|m| m.modified()).ok()
+    }
+
+    let mut last = mtime(&path);
+    thread::spawn(move || {
+        loop {
+            thread::sleep(Duration::from_secs(5));
+            let current = mtime(&path);
+            if current != last {
+                last = current;
+                log::info!("config file changed on disk; reloading");
+                controls.request_reload();
+            }
+        }
+    });
 }
 
 /// Start the tray icon and return a callback that refreshes its phase/countdown.
@@ -179,9 +206,7 @@ fn start_tray(
             config.sit_duration,
             config.stand_duration,
         )?;
-        Some(Box::new(move |phase, remaining| {
-            handle.set_status(phase, remaining)
-        }))
+        Some(Box::new(move |status| handle.set_status(status)))
     }
     #[cfg(not(target_os = "linux"))]
     {

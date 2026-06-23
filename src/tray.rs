@@ -16,7 +16,7 @@ use ksni::{Category, Icon, MenuItem, Status, ToolTip, Tray};
 
 use crate::config::Phase;
 use crate::icon;
-use crate::reminder::Controls;
+use crate::reminder::{Controls, TrayStatus};
 
 struct ReminderTray {
     controls: Arc<Controls>,
@@ -150,6 +150,13 @@ impl Tray for ReminderTray {
                 ..Default::default()
             }
             .into(),
+            StandardItem {
+                label: "Reload configuration".into(),
+                icon_name: "view-refresh".into(),
+                activate: Box::new(|tray: &mut Self| tray.controls.request_reload()),
+                ..Default::default()
+            }
+            .into(),
             MenuItem::Separator,
             StandardItem {
                 label: "Quit".into(),
@@ -183,11 +190,13 @@ pub struct TrayHandle {
 }
 
 impl TrayHandle {
-    /// Refresh the icon/menu/tooltip to reflect the current phase and countdown.
-    pub fn set_status(&self, phase: Phase, remaining: Duration) {
+    /// Refresh the icon/menu/tooltip to reflect the current status.
+    pub fn set_status(&self, status: TrayStatus) {
         self.handle.update(|tray| {
-            tray.phase = phase;
-            tray.remaining = remaining;
+            tray.phase = status.phase;
+            tray.remaining = status.remaining;
+            tray.sit_duration = status.sit_duration;
+            tray.stand_duration = status.stand_duration;
         });
     }
 }
