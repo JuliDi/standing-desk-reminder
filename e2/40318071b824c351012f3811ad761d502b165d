@@ -1,0 +1,59 @@
+src/notify.rs
+  s_a35738662c4dd1::t_bbb624e2f03ba9 1-58
+src/icon.rs
+  s_a35738662c4dd1::t_1a56105f3088b9 1-35,91-93,95-126,145
+  s_a35738662c4dd1::t_f2b7a4b5e96d85 68-70
+  s_a35738662c4dd1::t_475b81c44133c9 60,127-144
+src/service.rs
+  s_a35738662c4dd1::t_aeadc6cfed5782 1-79,81
+dist/standing-desk-reminder.service
+  s_a35738662c4dd1::t_9b1d689711e980 1-25
+src/config.rs
+  s_a35738662c4dd1::t_3052ba80c3dbdf 1-172,177-185
+  s_a35738662c4dd1::t_b5feafcf499f6b 173-176
+src/tray.rs
+  s_a35738662c4dd1::t_4b19861342c407 165-178,184-189,199-200,205-210
+  s_a35738662c4dd1::t_7868861d0e5194 1-6,9,12-23,46-64,79-97,103-104,121-144,153-164,179-183,190-194,202-204,212-223
+  s_a35738662c4dd1::t_c02bbbc836d393 11,24-29
+  s_a35738662c4dd1::t_add95bb5ec4303 195-198,201,211
+  s_a35738662c4dd1::t_2302c36afa6cc8 7-8,10,30-45
+  s_a35738662c4dd1::t_4ba20cc9640231 98-102,105-120
+  s_a35738662c4dd1::t_1ce527bcca3a47 65-78
+  s_a35738662c4dd1::t_d05e51de12101c 145-152
+src/reminder.rs
+  s_a35738662c4dd1::t_bde166dfb2c34a 59,63-65,76-78,94-103,110,116-121
+  s_a35738662c4dd1::t_0341f259877700 1-11,15-58,60-62,66-75,79-93,104-109,111-115,122-145
+  s_a35738662c4dd1::t_bd1d410ed0317d 12-14
+.gitignore
+  s_a35738662c4dd1::t_b9593499b38458 1
+src/main.rs
+  s_a35738662c4dd1::t_da724d92c3c568 1-22,25-145,147-148,150-152,156,160,162-165,167,178-180,182-184
+  s_a35738662c4dd1::t_489292d96a8a88 23-24
+  s_a35738662c4dd1::t_fb985fd616233a 158
+  s_a35738662c4dd1::t_3045cef5857d10 146,149,153-155,157,159,161,168-177,181
+LICENSE
+  s_a35738662c4dd1::t_56d4ac7f2ea7f8 1-21
+Cargo.toml
+  s_a35738662c4dd1::t_991259e7e84555 1-16
+  s_a35738662c4dd1::t_38605cc1cda9c5 17-31
+  s_a35738662c4dd1::t_74a0fdcf66928e 32
+README.md
+  s_a35738662c4dd1::t_0c75ae0b1c3363 22-27
+  s_a35738662c4dd1::t_b1ed242be0b61b 1-21,28-116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.10",
+  "base_commit_sha": "e240318071b824c351012f3811ad761d502b165d",
+  "prompts": {},
+  "sessions": {
+    "s_a35738662c4dd1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "315246f9-04e7-45f5-83a7-7c1c14094f59",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "JuliDi <julian@systemscape.de>"
+    }
+  }
+}
